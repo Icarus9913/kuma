@@ -21,7 +21,6 @@ import (
 	"github.com/kumahq/kuma/pkg/core/resources/registry"
 	"github.com/kumahq/kuma/pkg/core/resources/store"
 	"github.com/kumahq/kuma/pkg/core/user"
-	"github.com/kumahq/kuma/pkg/kds"
 	"github.com/kumahq/kuma/pkg/kds/util"
 	client_v2 "github.com/kumahq/kuma/pkg/kds/v2/client"
 	kuma_log "github.com/kumahq/kuma/pkg/log"
@@ -303,14 +302,6 @@ func ZoneSyncCallback(ctx context.Context, configToSync map[string]bool, syncer 
 			}
 
 			return syncer.Sync(ctx, upstream, PrefilterBy(func(r core_model.Resource) bool {
-				if zi, ok := r.(*core_mesh.ZoneIngressResource); ok {
-					// Old zones don't have a 'kuma.io/zone' label on ZoneIngress, when upgrading to the new 2.6 version
-					// we don't want Zone CP to sync ZoneIngresses without 'kuma.io/zone' label to Global pretending
-					// they're originating here. That's why upgrade from 2.5 to 2.6 (and 2.7) requires casting resource
-					// to *core_mesh.ZoneIngressResource and checking its 'spec.zone' field.
-					// todo: remove in 2 releases after 2.6.x
-					return zi.IsRemoteIngress(localZone)
-				}
 				return !core_model.IsLocallyOriginated(config_core.Zone, r) || !isExpectedOnZoneCP(r.Descriptor())
 			}))
 		},
@@ -331,16 +322,8 @@ func GlobalSyncCallback(
 	kubeFactory resources_k8s.KubeFactory,
 	systemNamespace string,
 ) *client_v2.Callbacks {
-	supportsHashSuffixes := kds.ContextHasFeature(ctx, kds.FeatureHashSuffix)
-
 	return &client_v2.Callbacks{
 		OnResourcesReceived: func(upstream client_v2.UpstreamResponse) error {
-			if !supportsHashSuffixes {
-				// todo: remove in 2 releases after 2.6.x
-				upstream.RemovedResourcesKey = util.AddPrefixToResourceKeyNames(upstream.RemovedResourcesKey, upstream.ControlPlaneId)
-				util.AddPrefixToNames(upstream.AddedResources.GetItems(), upstream.ControlPlaneId)
-			}
-
 			for _, r := range upstream.AddedResources.GetItems() {
 				r.SetMeta(util.CloneResourceMeta(r.GetMeta(),
 					util.WithLabel(mesh_proto.ZoneTag, upstream.ControlPlaneId),

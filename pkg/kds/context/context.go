@@ -19,7 +19,6 @@ import (
 	config_core "github.com/kumahq/kuma/pkg/config/core"
 	"github.com/kumahq/kuma/pkg/core"
 	config_manager "github.com/kumahq/kuma/pkg/core/config/manager"
-	core_mesh "github.com/kumahq/kuma/pkg/core/resources/apis/mesh"
 	meshservice_api "github.com/kumahq/kuma/pkg/core/resources/apis/meshservice/api/v1alpha1"
 	"github.com/kumahq/kuma/pkg/core/resources/apis/system"
 	"github.com/kumahq/kuma/pkg/core/resources/manager"
@@ -28,9 +27,9 @@ import (
 	"github.com/kumahq/kuma/pkg/kds"
 	"github.com/kumahq/kuma/pkg/kds/hash"
 	"github.com/kumahq/kuma/pkg/kds/mux"
-	"github.com/kumahq/kuma/pkg/kds/reconcile"
 	"github.com/kumahq/kuma/pkg/kds/service"
 	"github.com/kumahq/kuma/pkg/kds/util"
+	reconcile_v2 "github.com/kumahq/kuma/pkg/kds/v2/reconcile"
 	zone_tokens "github.com/kumahq/kuma/pkg/tokens/builtin/zone"
 	"github.com/kumahq/kuma/pkg/util/rsa"
 	"github.com/kumahq/kuma/pkg/version"
@@ -42,15 +41,14 @@ var log = core.Log.WithName("kds")
 
 type Context struct {
 	ZoneClientCtx         context.Context
-	GlobalProvidedFilter  reconcile.ResourceFilter
-	ZoneProvidedFilter    reconcile.ResourceFilter
-	GlobalServerFilters   []mux.Filter
+	GlobalProvidedFilter  reconcile_v2.ResourceFilter
+	ZoneProvidedFilter    reconcile_v2.ResourceFilter
 	GlobalServerFiltersV2 []mux.FilterV2
 	// Configs contains the names of system.ConfigResource that will be transferred from Global to Zone
 	Configs map[string]bool
 
-	GlobalResourceMapper reconcile.ResourceMapper
-	ZoneResourceMapper   reconcile.ResourceMapper
+	GlobalResourceMapper reconcile_v2.ResourceMapper
+	ZoneResourceMapper   reconcile_v2.ResourceMapper
 
 	EnvoyAdminRPCs           service.EnvoyAdminRPCs
 	ServerStreamInterceptors []grpc.StreamServerInterceptor
@@ -67,38 +65,38 @@ func DefaultContext(
 		config_manager.ClusterIdConfigKey: true,
 	}
 
-	globalMappers := []reconcile.ResourceMapper{
+	globalMappers := []reconcile_v2.ResourceMapper{
 		UpdateResourceMeta(util.WithLabel(mesh_proto.ResourceOriginLabel, string(mesh_proto.GlobalResourceOrigin))),
-		reconcile.If(
-			reconcile.And(
-				reconcile.TypeIs(system.GlobalSecretType),
-				reconcile.NameHasPrefix(zone_tokens.SigningKeyPrefix),
+		reconcile_v2.If(
+			reconcile_v2.And(
+				reconcile_v2.TypeIs(system.GlobalSecretType),
+				reconcile_v2.NameHasPrefix(zone_tokens.SigningKeyPrefix),
 			),
 			MapZoneTokenSigningKeyGlobalToPublicKey),
-		reconcile.If(
-			reconcile.IsKubernetes(cfg.Store.Type),
+		reconcile_v2.If(
+			reconcile_v2.IsKubernetes(cfg.Store.Type),
 			RemoveK8sSystemNamespaceSuffixMapper(cfg.Store.Kubernetes.SystemNamespace)),
-		reconcile.If(
-			reconcile.TypeIs(meshservice_api.MeshServiceType),
+		reconcile_v2.If(
+			reconcile_v2.TypeIs(meshservice_api.MeshServiceType),
 			RemoveStatus()),
-		reconcile.If(
-			reconcile.And(
-				reconcile.ScopeIs(core_model.ScopeMesh),
+		reconcile_v2.If(
+			reconcile_v2.And(
+				reconcile_v2.ScopeIs(core_model.ScopeMesh),
 				// secrets already named with mesh prefix for uniqueness on k8s, also Zone CP expects secret names to be in
 				// particular format to be able to reference them
-				reconcile.Not(reconcile.TypeIs(system.SecretType)),
+				reconcile_v2.Not(reconcile_v2.TypeIs(system.SecretType)),
 			),
 			HashSuffixMapper(true, mesh_proto.ZoneTag, mesh_proto.KubeNamespaceTag)),
 	}
 
-	zoneMappers := []reconcile.ResourceMapper{
+	zoneMappers := []reconcile_v2.ResourceMapper{
 		UpdateResourceMeta(
 			util.WithLabel(mesh_proto.ResourceOriginLabel, string(mesh_proto.ZoneResourceOrigin)),
 			util.WithLabel(mesh_proto.ZoneTag, cfg.Multizone.Zone.Name),
 		),
 		MapInsightResourcesZeroGeneration,
-		reconcile.If(
-			reconcile.IsKubernetes(cfg.Store.Type),
+		reconcile_v2.If(
+			reconcile_v2.IsKubernetes(cfg.Store.Type),
 			RemoveK8sSystemNamespaceSuffixMapper(cfg.Store.Kubernetes.SystemNamespace)),
 		HashSuffixMapper(false, mesh_proto.ZoneTag, mesh_proto.KubeNamespaceTag),
 	}
@@ -119,7 +117,7 @@ func DefaultContext(
 // CompositeResourceMapper combines the given ResourceMappers into
 // a single ResourceMapper which calls each in order. If an error
 // occurs, the first one is returned and no further mappers are executed.
-func CompositeResourceMapper(mappers ...reconcile.ResourceMapper) reconcile.ResourceMapper {
+func CompositeResourceMapper(mappers ...reconcile_v2.ResourceMapper) reconcile_v2.ResourceMapper {
 	return func(features kds.Features, r core_model.Resource) (core_model.Resource, error) {
 		var err error
 		for _, mapper := range mappers {
@@ -192,7 +190,7 @@ func MapZoneTokenSigningKeyGlobalToPublicKey(_ kds.Features, r core_model.Resour
 
 // RemoveK8sSystemNamespaceSuffixMapper is a mapper responsible for removing control plane system namespace suffixes
 // from names of resources if resources are stored in kubernetes.
-func RemoveK8sSystemNamespaceSuffixMapper(k8sSystemNamespace string) reconcile.ResourceMapper {
+func RemoveK8sSystemNamespaceSuffixMapper(k8sSystemNamespace string) reconcile_v2.ResourceMapper {
 	return func(_ kds.Features, r core_model.Resource) (core_model.Resource, error) {
 		dotSuffix := fmt.Sprintf(".%s", k8sSystemNamespace)
 		newName := strings.TrimSuffix(r.GetMeta().GetName(), dotSuffix)
@@ -200,14 +198,14 @@ func RemoveK8sSystemNamespaceSuffixMapper(k8sSystemNamespace string) reconcile.R
 	}
 }
 
-func RemoveStatus() reconcile.ResourceMapper {
+func RemoveStatus() reconcile_v2.ResourceMapper {
 	return func(_ kds.Features, r core_model.Resource) (core_model.Resource, error) {
 		return util.CloneResource(r, util.WithoutStatus()), nil
 	}
 }
 
 // HashSuffixMapper returns mapper that adds a hash suffix to the name during KDS sync
-func HashSuffixMapper(checkKDSFeature bool, labelsToUse ...string) reconcile.ResourceMapper {
+func HashSuffixMapper(checkKDSFeature bool, labelsToUse ...string) reconcile_v2.ResourceMapper {
 	return func(features kds.Features, r core_model.Resource) (core_model.Resource, error) {
 		if checkKDSFeature && !features.HasFeature(kds.FeatureHashSuffix) {
 			return r, nil
@@ -226,7 +224,7 @@ func HashSuffixMapper(checkKDSFeature bool, labelsToUse ...string) reconcile.Res
 	}
 }
 
-func UpdateResourceMeta(fs ...util.CloneResourceMetaOpt) reconcile.ResourceMapper {
+func UpdateResourceMeta(fs ...util.CloneResourceMetaOpt) reconcile_v2.ResourceMapper {
 	return func(_ kds.Features, r core_model.Resource) (core_model.Resource, error) {
 		newRes := util.CloneResource(r)
 		newRes.SetMeta(util.CloneResourceMeta(r.GetMeta(), fs...))
@@ -234,7 +232,7 @@ func UpdateResourceMeta(fs ...util.CloneResourceMetaOpt) reconcile.ResourceMappe
 	}
 }
 
-func GlobalProvidedFilter(rm manager.ResourceManager, configs map[string]bool) reconcile.ResourceFilter {
+func GlobalProvidedFilter(rm manager.ResourceManager, configs map[string]bool) reconcile_v2.ResourceFilter {
 	return func(ctx context.Context, clusterID string, features kds.Features, r core_model.Resource) bool {
 		resName := r.GetMeta().GetName()
 
@@ -246,7 +244,7 @@ func GlobalProvidedFilter(rm manager.ResourceManager, configs map[string]bool) r
 				zone_tokens.SigningKeyPrefix,
 			}...)
 		case r.Descriptor().KDSFlags.Has(core_model.GlobalToAllButOriginalZoneFlag):
-			zoneTag := util.ZoneTag(r)
+			zoneTag := core_model.ZoneOfResource(r)
 
 			if clusterID == zoneTag {
 				// don't need to sync resource to the zone where resource is originated from
@@ -269,13 +267,5 @@ func GlobalProvidedFilter(rm manager.ResourceManager, configs map[string]bool) r
 }
 
 func ZoneProvidedFilter(_ context.Context, localZone string, _ kds.Features, r core_model.Resource) bool {
-	if zi, ok := r.(*core_mesh.ZoneIngressResource); ok {
-		// Old zones don't have a 'kuma.io/zone' label on ZoneIngress, when upgrading to the new 2.6 version
-		// we don't want Zone CP to sync ZoneIngresses without 'kuma.io/zone' label to Global pretending
-		// they're originating here. That's why upgrade from 2.5 to 2.6 (and 2.7) requires casting resource
-		// to *core_mesh.ZoneIngressResource and checking its 'spec.zone' field.
-		// todo: remove in 2 releases after 2.6.x
-		return !zi.IsRemoteIngress(localZone)
-	}
 	return core_model.IsLocallyOriginated(config_core.Zone, r) || r.Descriptor().KDSFlags == core_model.ZoneToGlobalFlag
 }
