@@ -111,11 +111,8 @@ func (c *client) Start(stop <-chan struct{}) (errs error) {
 	go c.startStats(withKDSCtx, log, conn, errorCh)
 	go c.startClusters(withKDSCtx, log, conn, errorCh)
 
-	// TODO(Icarus9913): no need flag anymore
-	if c.experimantalConfig.KDSDeltaEnabled {
-		go c.startGlobalToZoneSync(withKDSCtx, log, conn, errorCh)
-		go c.startZoneToGlobalSync(withKDSCtx, log, conn, errorCh)
-	}
+	go c.startGlobalToZoneSync(withKDSCtx, log, conn, errorCh)
+	go c.startZoneToGlobalSync(withKDSCtx, log, conn, errorCh)
 
 	select {
 	case <-stop:
