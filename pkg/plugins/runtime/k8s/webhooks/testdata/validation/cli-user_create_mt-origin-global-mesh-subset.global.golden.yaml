@@ -5,6 +5,5 @@ status:
   metadata: {}
 uid: "12345"
 warnings:
-- 'MeshTimeout type resource "backend-v3" has the following deprecated fields: MeshSubset
-  value for ''targetRef.kind'' is deprecated, use Dataplane with labels instead'
+- '''MeshTimeout'' type resource ''"backend-v3"'' has the following deprecated fields: '
 - MeshSubset value for 'targetRef.kind' is deprecated, use Dataplane with labels instead

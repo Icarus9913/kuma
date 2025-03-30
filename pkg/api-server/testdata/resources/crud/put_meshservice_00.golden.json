@@ -1,5 +1,1 @@
-{
- "warnings": [
-  "MeshService type resource \"redis\" has the following deprecated fields: "
- ]
-}
+{}
