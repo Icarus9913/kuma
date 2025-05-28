@@ -202,6 +202,13 @@ func (s *syncResourceStore) Sync(syncCtx context.Context, upstreamResponse clien
 
 	indexedDownstream := model.IndexByKey(downstream.GetItems())
 	indexedUpstream := model.IndexByKey(upstream.GetItems())
+	upstreamItems := upstream.GetItems()
+	for _, v := range upstreamItems {
+		if v.Descriptor().Name == "MeshService" {
+			log.V(1).Info("00000000000000", "meta", v.GetMeta(), "spec", v.GetSpec(), "status", v.GetStatus())
+		}
+	}
+
 	log.V(1).Info("============", "indexedDownstream", outputKey(indexedDownstream), "indexedUpstream", outputKey(indexedUpstream))
 
 	onDelete := []core_model.Resource{}
