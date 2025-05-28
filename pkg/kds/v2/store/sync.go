@@ -128,7 +128,7 @@ func (s *syncResourceStore) Sync(syncCtx context.Context, upstreamResponse clien
 	}()
 	opts := NewSyncOptions(fs...)
 	ctx := user.Ctx(syncCtx, user.ControlPlane)
-	log := s.log.WithValues("type", upstreamResponse.Type)
+	log := s.log.WithValues("type", upstreamResponse.Type, "IsInitialRequest", upstreamResponse.IsInitialRequest)
 	log = kuma_log.AddFieldsFromCtx(log, ctx, s.extensions)
 	upstream := upstreamResponse.AddedResources
 	downstream, err := registry.Global().NewList(upstreamResponse.Type)
@@ -184,6 +184,7 @@ func (s *syncResourceStore) Sync(syncCtx context.Context, upstreamResponse clien
 
 	indexedDownstream := model.IndexByKey(downstream.GetItems())
 	indexedUpstream := model.IndexByKey(upstream.GetItems())
+	log.V(1).Info("============", "indexedDownstream", indexedDownstream, "indexedUpstream", indexedUpstream)
 
 	onDelete := []core_model.Resource{}
 	// 1. delete resources which were removed from the upstream
@@ -195,6 +196,7 @@ func (s *syncResourceStore) Sync(syncCtx context.Context, upstreamResponse clien
 	if upstreamResponse.IsInitialRequest {
 		for _, r := range downstream.GetItems() {
 			if indexedUpstream[core_model.MetaToResourceKey(r.GetMeta())] == nil {
+				log.V(1).Info("onDelete AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 				onDelete = append(onDelete, r)
 			}
 		}
@@ -206,6 +208,7 @@ func (s *syncResourceStore) Sync(syncCtx context.Context, upstreamResponse clien
 				continue
 			}
 			if r := indexedDownstream[rk]; r != nil {
+				log.V(1).Info("onDelete BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
 				onDelete = append(onDelete, r)
 			}
 		}

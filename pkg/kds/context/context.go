@@ -3,6 +3,7 @@ package context
 import (
 	"context"
 	"fmt"
+	"os"
 	"reflect"
 	"slices"
 	"strings"
@@ -243,7 +244,14 @@ func HashSuffixMapper(checkKDSFeature bool, labelsToUse ...string) reconcile_v2.
 			}
 		}
 
-		return util.CloneResource(r, util.WithResourceName(hash.HashedName(r.GetMeta().GetMesh(), name, values...))), nil
+		val, ok := os.LookupEnv("ENABLE_TEST_SUFFIX")
+		hashOpts := []hash.Option{hash.WithAdditionalValuesToHash(values...)}
+		if r.Descriptor().Name == meshservice_api.MeshServiceType && (ok && val == "true") {
+			log.Info("Using test suffix !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+			hashOpts = append(hashOpts, hash.WithNameLengthLimit(hash.K8sNameLengthLimit63))
+		}
+		resourceNameFn := util.WithResourceName(hash.HashedName(r.GetMeta().GetMesh(), name, hashOpts...))
+		return util.CloneResource(r, resourceNameFn), nil
 	}
 }
 
