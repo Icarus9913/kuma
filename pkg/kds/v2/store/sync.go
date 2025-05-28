@@ -205,7 +205,15 @@ func (s *syncResourceStore) Sync(syncCtx context.Context, upstreamResponse clien
 	upstreamItems := upstream.GetItems()
 	for _, v := range upstreamItems {
 		if v.Descriptor().Name == "MeshService" {
-			log.V(1).Info("00000000000000", "meta", v.GetMeta(), "spec", v.GetSpec(), "status", v.GetStatus())
+			data := v.GetMeta() == nil
+
+			log.V(1).Info("00000000000000", "isMetaNil", data,
+				"meta", v.GetMeta(),
+				"mesh", v.GetMeta().GetMesh(),
+				"name", v.GetMeta().GetName(),
+				"key", model.MetaToResourceKey(v.GetMeta()),
+				"spec", v.GetSpec(),
+				"status", v.GetStatus())
 		}
 	}
 
