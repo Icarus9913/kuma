@@ -208,7 +208,7 @@ func (s *syncResourceStore) Sync(syncCtx context.Context, upstreamResponse clien
 				continue
 			}
 			if r := indexedDownstream[rk]; r != nil {
-				log.V(1).Info("onDelete BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
+				log.V(1).Info("onDelete BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
 				onDelete = append(onDelete, r)
 			}
 		}
