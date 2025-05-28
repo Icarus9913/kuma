@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	std_errors "errors"
 	"fmt"
 	"maps"
@@ -180,11 +181,19 @@ func (s *syncResourceStore) Sync(syncCtx context.Context, upstreamResponse clien
 		return err, nil
 	}
 
-	log.V(1).Info("after filtering", "downstream", downstream, "upstream", upstream)
+	outputFn := func(data interface{}) string {
+		marshal, err := json.Marshal(data)
+		if nil != err {
+			return err.Error()
+		}
+		return string(marshal)
+	}
+
+	log.V(1).Info("after filtering", "downstream", outputFn(downstream), "upstream", outputFn(upstream))
 
 	indexedDownstream := model.IndexByKey(downstream.GetItems())
 	indexedUpstream := model.IndexByKey(upstream.GetItems())
-	fmt.Printf("============ indexedDownstream: %+v\n indexedUpstream: %+v\n", indexedDownstream, indexedUpstream)
+	log.V(1).Info("============", "indexedDownstream", outputFn(indexedDownstream), "indexedUpstream", outputFn(indexedUpstream))
 
 	onDelete := []core_model.Resource{}
 	// 1. delete resources which were removed from the upstream
