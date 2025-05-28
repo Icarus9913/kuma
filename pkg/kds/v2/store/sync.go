@@ -189,11 +189,20 @@ func (s *syncResourceStore) Sync(syncCtx context.Context, upstreamResponse clien
 		return string(marshal)
 	}
 
+	outputKey := func(data map[model.ResourceKey]model.Resource) string {
+		key := ""
+		for i := range data {
+			key = key + i.String() + ", "
+		}
+
+		return key
+	}
+
 	log.V(1).Info("after filtering", "downstream", outputFn(downstream), "upstream", outputFn(upstream))
 
 	indexedDownstream := model.IndexByKey(downstream.GetItems())
 	indexedUpstream := model.IndexByKey(upstream.GetItems())
-	log.V(1).Info("============", "indexedDownstream", outputFn(indexedDownstream), "indexedUpstream", outputFn(indexedUpstream))
+	log.V(1).Info("============", "indexedDownstream", outputKey(indexedDownstream), "indexedUpstream", outputKey(indexedUpstream))
 
 	onDelete := []core_model.Resource{}
 	// 1. delete resources which were removed from the upstream

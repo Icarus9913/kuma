@@ -44,6 +44,10 @@ type ResourceKey struct {
 	Name string
 }
 
+func (r ResourceKey) String() string {
+	return fmt.Sprintf("%s-%s", r.Mesh, r.Name)
+}
+
 type ResourceScope string
 
 const (
