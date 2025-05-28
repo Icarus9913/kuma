@@ -184,7 +184,7 @@ func (s *syncResourceStore) Sync(syncCtx context.Context, upstreamResponse clien
 
 	indexedDownstream := model.IndexByKey(downstream.GetItems())
 	indexedUpstream := model.IndexByKey(upstream.GetItems())
-	log.V(1).Info("============", "indexedDownstream", indexedDownstream, "indexedUpstream", indexedUpstream)
+	fmt.Printf("============ indexedDownstream: %+v\n indexedUpstream: %+v\n", indexedDownstream, indexedUpstream)
 
 	onDelete := []core_model.Resource{}
 	// 1. delete resources which were removed from the upstream
