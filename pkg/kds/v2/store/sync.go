@@ -211,6 +211,7 @@ func (s *syncResourceStore) Sync(syncCtx context.Context, upstreamResponse clien
 			log.V(1).Info("0000000000000",
 				"isMetaNil", data,
 				"meta", v.GetMeta(),
+				"resource-type", reflect.TypeOf(v).String(),
 				"meta-type", reflect.TypeOf(v.GetMeta()).String(),
 				"mesh", v.GetMeta().GetMesh(),
 				"name", v.GetMeta().GetName(),
