@@ -137,7 +137,29 @@ func (r *resourceMeta) GetModificationTime() time.Time {
 func (r *resourceMeta) GetLabels() map[string]string {
 	return r.labels
 }
+
 func (r *resourceMeta) String() string {
-	return fmt.Sprintf("ResourceMeta{name: %s, mesh: %s, labels: %q, nameExtensions: %q}",
-		r.name, r.mesh, r.labels, r.nameExtensions)
+	if r == nil {
+		return "nil"
+	}
+
+	mapStringForLabels := "map[string]string{"
+	for k, v := range r.labels {
+		mapStringForLabels += fmt.Sprintf("%v: %v,", k, v)
+	}
+	mapStringForLabels += "}"
+
+	mapStringForNameExtensions := "map[string]string{"
+	for k, v := range r.nameExtensions {
+		mapStringForNameExtensions += fmt.Sprintf("%v: %v,", k, v)
+	}
+	mapStringForNameExtensions += "}"
+
+	s := strings.Join([]string{`resourceMeta{`,
+		`name:` + r.name + `,`,
+		`mesh:` + r.mesh + `,`,
+		`labels:` + mapStringForLabels + `,`,
+		`nameExtensions:` + mapStringForNameExtensions + `,`,
+	}, "")
+	return s
 }
