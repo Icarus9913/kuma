@@ -1,6 +1,7 @@
 package util
 
 import (
+	"fmt"
 	"maps"
 	"strings"
 	"time"
@@ -135,4 +136,30 @@ func (r *resourceMeta) GetModificationTime() time.Time {
 
 func (r *resourceMeta) GetLabels() map[string]string {
 	return r.labels
+}
+
+func (r *resourceMeta) String() string {
+	if r == nil {
+		return "nil"
+	}
+
+	mapStringForLabels := "map[string]string{"
+	for k, v := range r.labels {
+		mapStringForLabels += fmt.Sprintf("%v: %v,", k, v)
+	}
+	mapStringForLabels += "}"
+
+	mapStringForNameExtensions := "map[string]string{"
+	for k, v := range r.nameExtensions {
+		mapStringForNameExtensions += fmt.Sprintf("%v: %v,", k, v)
+	}
+	mapStringForNameExtensions += "}"
+
+	s := strings.Join([]string{`resourceMeta{`,
+		`name:` + r.name + `,`,
+		`mesh:` + r.mesh + `,`,
+		`labels:` + mapStringForLabels + `,`,
+		`nameExtensions:` + mapStringForNameExtensions + `,`,
+	}, "")
+	return s
 }
