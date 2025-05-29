@@ -2,11 +2,9 @@ package store
 
 import (
 	"context"
-	"encoding/json"
 	std_errors "errors"
 	"fmt"
 	"maps"
-	"reflect"
 	"strings"
 	"time"
 
@@ -173,21 +171,13 @@ func (s *syncResourceStore) Sync(syncCtx context.Context, upstreamResponse clien
 		predicate = append(predicate, opts.Predicate)
 	}
 
-	log.V(1).Info("before filtering", "downstream", downstream, "upstream", upstream)
+	log.V(0).Info("before filtering", "downstream", downstream, "upstream", upstream)
 
 	if downstream, err = filterResources(downstream, predicate); err != nil {
 		return err, nil
 	}
 	if upstream, err = filterResources(upstream, predicate); err != nil {
 		return err, nil
-	}
-
-	outputFn := func(data interface{}) string {
-		marshal, err := json.Marshal(data)
-		if nil != err {
-			return err.Error()
-		}
-		return string(marshal)
 	}
 
 	outputKey := func(data map[model.ResourceKey]model.Resource) string {
@@ -199,32 +189,11 @@ func (s *syncResourceStore) Sync(syncCtx context.Context, upstreamResponse clien
 		return key
 	}
 
-	log.V(1).Info("after filtering", "downstream", outputFn(downstream), "upstream", outputFn(upstream))
+	log.V(0).Info("after filtering", "downstream", downstream, "upstream", upstream)
 
 	indexedDownstream := model.IndexByKey(downstream.GetItems())
 	indexedUpstream := model.IndexByKey(upstream.GetItems())
-	upstreamItems := upstream.GetItems()
-	for _, v := range upstreamItems {
-		if v.Descriptor().Name == "MeshService" {
-			data := v.GetMeta() == nil
-
-			log.V(1).Info("0000000000000",
-				"isMetaNil", data,
-				"meta", v.GetMeta(),
-				"resource-type", reflect.TypeOf(v).String(),
-				"meta-type", reflect.TypeOf(v.GetMeta()).String(),
-				"mesh", v.GetMeta().GetMesh(),
-				"name", v.GetMeta().GetName(),
-				"key", model.MetaToResourceKey(v.GetMeta()),
-				"spec", v.GetSpec(),
-				"status", v.GetStatus())
-
-			downstreamMeta := downstream.GetItems()[0].GetMeta()
-			log.V(1).Info("11111111111111", "metaType", reflect.TypeOf(downstreamMeta).String())
-		}
-	}
-
-	log.V(1).Info("============", "indexedDownstream", outputKey(indexedDownstream), "indexedUpstream", outputKey(indexedUpstream))
+	log.V(0).Info("============", "indexedDownstream", outputKey(indexedDownstream), "indexedUpstream", outputKey(indexedUpstream))
 
 	onDelete := []core_model.Resource{}
 	// 1. delete resources which were removed from the upstream
