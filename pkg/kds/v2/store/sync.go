@@ -200,8 +200,6 @@ func (s *syncResourceStore) Sync(syncCtx context.Context, upstreamResponse clien
 	}
 
 	log.V(1).Info("after filtering", "downstream", outputFn(downstream), "upstream", outputFn(upstream))
-	downstreamMeta := downstream.GetItems()[0].GetMeta()
-	log.V(1).Info("0000000000000", "metaType", reflect.TypeOf(downstreamMeta).String())
 
 	indexedDownstream := model.IndexByKey(downstream.GetItems())
 	indexedUpstream := model.IndexByKey(upstream.GetItems())
@@ -210,7 +208,7 @@ func (s *syncResourceStore) Sync(syncCtx context.Context, upstreamResponse clien
 		if v.Descriptor().Name == "MeshService" {
 			data := v.GetMeta() == nil
 
-			log.V(1).Info("11111111111111",
+			log.V(1).Info("0000000000000",
 				"isMetaNil", data,
 				"meta", v.GetMeta(),
 				"meta-type", reflect.TypeOf(v.GetMeta()).String(),
@@ -219,6 +217,9 @@ func (s *syncResourceStore) Sync(syncCtx context.Context, upstreamResponse clien
 				"key", model.MetaToResourceKey(v.GetMeta()),
 				"spec", v.GetSpec(),
 				"status", v.GetStatus())
+
+			downstreamMeta := downstream.GetItems()[0].GetMeta()
+			log.V(1).Info("11111111111111", "metaType", reflect.TypeOf(downstreamMeta).String())
 		}
 	}
 

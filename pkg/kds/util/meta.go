@@ -1,6 +1,7 @@
 package util
 
 import (
+	"fmt"
 	"maps"
 	"strings"
 	"time"
@@ -135,4 +136,8 @@ func (r *resourceMeta) GetModificationTime() time.Time {
 
 func (r *resourceMeta) GetLabels() map[string]string {
 	return r.labels
+}
+func (r *resourceMeta) String() string {
+	return fmt.Sprintf("ResourceMeta{name: %s, mesh: %s, labels: %q, nameExtensions: %q}",
+		r.name, r.mesh, r.labels, r.nameExtensions)
 }
