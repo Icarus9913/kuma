@@ -339,7 +339,7 @@ var _ = Describe("Insight Persistence", func() {
 		insight := core_mesh.NewMeshInsightResource()
 		Eventually(func() error {
 			return rm.Get(context.Background(), insight, store.GetByKey("mesh-1", model.NoMesh))
-		}, "10s", "100ms").Should(BeNil())
+		}, "10s", "100ms").Should(Succeed())
 		Expect(insight.Spec.Policies[string(core_mesh.DataplaneType)]).To(BeNil())
 		Expect(insight.Spec.Policies[string(system.SecretType)]).To(BeNil())
 		Expect(insight.Spec.Dataplanes.Total).To(Equal(uint32(1)))
